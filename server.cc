@@ -50,7 +50,7 @@ int main() {
             continue;
         }
 
-        std::cout << "Nueva conexión aceptada" << std::endl;
+        std::cout << ".\n- Nueva conexión aceptada" << std::endl;
 
         // Leer mensaje enviado por el cliente
         int valread = recv(new_socket, buffer, 1024, 0);
@@ -90,6 +90,16 @@ int main() {
         chat::ChangeStatus change_status;
         std::int32_t new_status;
 
+        // Case 4 variables
+        bool message_type;
+
+        std::string recipient;
+        std::string sender;
+        chat::newMessage message;
+        std::string message_string;
+
+        
+
 
         std::string response_str;
         chat::ServerResponse server_response;
@@ -104,7 +114,7 @@ int main() {
             {
                 if (it->first == user_name && users_state[user_name] != 3)
                 {
-                    message_response = "El usuario ya esta registrado o esta activo";
+                    message_response = "\n- El usuario ya esta registrado o esta activo";
                     server_response.set_option(1);
                     server_response.set_code(400);
                     server_response.set_allocated_servermessage(&message_response);
@@ -116,14 +126,14 @@ int main() {
                     }
 
                     send(new_socket, response_str.c_str(), response_str.length(), 0);
-                    std::cout << "El usuario que se ha enviado ya esta registrado o activo: " << it->first << std::endl;
+                    std::cout << "\n- El usuario que se ha enviado ya esta registrado o activo: " << it->first << std::endl;
                 }
             }
 
             if (!user_flag || ( user_flag &&  users_state[user_name] == 3)){
                 users[user_name] = ip;
                 users_state[user_name] = 1;
-                message_response = "Usuario registrado o activado exitosamente";
+                message_response = "\n- Usuario registrado o activado exitosamente";
                 server_response.set_option(1);
                 server_response.set_code(200);
                 server_response.set_allocated_servermessage(&message_response);
@@ -135,7 +145,7 @@ int main() {
                 }
 
                 send(new_socket, response_str.c_str(), response_str.length(), 0);
-                std::cout << "El usuario se ha registrado exitosamente: " << user_name << std::endl;
+                std::cout << "\n- El usuario se ha registrado exitosamente: " << user_name << std::endl;
             }
         }
 
@@ -156,7 +166,7 @@ int main() {
 
                 server_response.set_option(2);
                 server_response.set_code(200);
-                message_response = "Se han enviado todos los usuarios";
+                message_response = "\n- Se han enviado todos los usuarios";
                 server_response.set_allocated_servermessage(&message_response);
                 server_response.set_allocated_connectedusers(&connected_users);
 
@@ -166,7 +176,7 @@ int main() {
                 }
 
                 send(new_socket, response_str.c_str(), response_str.length(), 0);
-                std::cout << "Se han enviado todos los usuarios al cliente" << std::endl;
+                std::cout << "\n- Se han enviado todos los usuarios al cliente" << std::endl;
 
             } 
             else {
@@ -185,18 +195,18 @@ int main() {
                 if (user_flag) {
                     server_response.set_option(2);
                     server_response.set_code(200);
-                    message_response = "Se ha enviado el usuario";
+                    message_response = "\n- Se ha enviado el usuario";
                     server_response.set_allocated_servermessage(&message_response);
                     server_response.set_allocated_userinforesponse(&user_info);
 
                     if (!server_response.SerializeToString(&response_str)) {
-                        std::cerr << "Failed to serialize message." << std::endl;
+                        std::cerr << "\n- Failed to serialize message." << std::endl;
                         return 1;
                     }
 
                     send(new_socket, response_str.c_str(), response_str.length(), 0);
                     user_info.Clear();
-                    std::cout << "Se han enviado el usuario solicitado: " << user_name << std::endl;
+                    std::cout << "\n- Se han enviado el usuario solicitado: " << user_name << std::endl;
                 }
                 else {
                     server_response.set_option(2);
@@ -210,7 +220,7 @@ int main() {
                     }
 
                     send(new_socket, response_str.c_str(), response_str.length(), 0);
-                    std::cout << "El usuario solicitado por el cliente no existe: " << user_name << std::endl;
+                    std::cout << "\n- El usuario solicitado por el cliente no existe: " << user_name << std::endl;
                 }
                     
             }
@@ -232,7 +242,7 @@ int main() {
                 if (new_status < 1 || new_status > 3){
                     server_response.set_option(3);
                     server_response.set_code(400);
-                    message_response = "El status enviado es incorrecto";
+                    message_response = "\n- El status enviado es incorrecto";
                     server_response.set_allocated_servermessage(&message_response);
 
                     if (!server_response.SerializeToString(&response_str)) {
@@ -241,13 +251,13 @@ int main() {
                     }
 
                     send(new_socket, response_str.c_str(), response_str.length(), 0);
-                    std::cout << "El status enviado es incorrecto" << std::endl;
+                    std::cout << "\n- El status enviado es incorrecto" << std::endl;
                 }
                 else if (user_flag) {
                     users_state[user_name] = new_status;
                     server_response.set_option(3);
                     server_response.set_code(200);
-                    message_response = "Se ha cambiado el status exitosamente";
+                    message_response = "\n- Se ha cambiado el status exitosamente";
                     server_response.set_allocated_servermessage(&message_response);
 
                     if (!server_response.SerializeToString(&response_str)) {
@@ -257,7 +267,7 @@ int main() {
 
                     send(new_socket, response_str.c_str(), response_str.length(), 0);
                     user_info.Clear();
-                    std::cout << "Se han enviado el usuario solicitado: " << user_name << std::endl;
+                    std::cout << "\n- Se han enviado el usuario solicitado: " << user_name << std::endl;
                 }
                 else {
                     server_response.set_option(3);
@@ -271,8 +281,12 @@ int main() {
                     }
 
                     send(new_socket, response_str.c_str(), response_str.length(), 0);
-                    std::cout << "El usuario solicitado por el cliente no existe: " << user_name << std::endl;
+                    std::cout << "\n- El usuario solicitado por el cliente no existe: " << user_name << std::endl;
                 }
+
+        }
+
+        if (option == 4){
 
         }
 
