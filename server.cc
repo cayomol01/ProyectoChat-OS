@@ -297,7 +297,7 @@ int main() {
             mensaje = request.message();
             m_type = mensaje.message_type();
             message_string = mensaje.message();
-
+            sender = mensaje.sender();
 
             
             //Si el mensaje no es para todos sino que privado
@@ -309,47 +309,73 @@ int main() {
                     }
 
                 }
-
+                //Si el usuario si existe y también está activo
                 if(user_flag && users_state[recipient]==1){
-                    
+                    server_response.set_option(4);
+                    server_response.set_code(200);
+                    message_response = "\n- " + sender + " --> "+ message_string + " --> "+ recipient;
+                    server_response.set_allocated_servermessage(&message_response);
+                    server_response.set_allocated_message(&mensaje);
+                    if (!server_response.SerializeToString(&response_str)) {
+                        std::cerr << "Failed to serialize message." << std::endl;
+                        return 1;
+                    }
+                    send(users_sockets[recipient], response_str.c_str(), response_str.length(), 0);
+                    std::cout << "\n- "<< sender << " --> "<< message_string << " --> " << recipient << std::endl;
+                    send(new_socket, response_str.c_str(), response_str.length(), 0);
+                    user_info.Clear();
+                }
+
+                //Si el usuario no existe o está inactivo
+                else {
+                    server_response.set_option(4);
+                    server_response.set_code(400);
+                    message_response = "\n- El usuario solicitado no existe o está inactivo: "  + recipient;
+                    server_response.set_allocated_servermessage(&message_response);
+
+                    if (!server_response.SerializeToString(&response_str)) {
+                        std::cerr << "Failed to serialize message." << std::endl;
+                        return 1;
+                    }
+
+                    send(new_socket, response_str.c_str(), response_str.length(), 0);
+                    std::cout << "\n- El usuario solicitado por el cliente no existe o está inactivo: " << recipient << std::endl;
                 }
 
             }
-
-            if (new_status < 1 || new_status > 3){
-                server_response.set_option(3);
-                server_response.set_code(400);
-                message_response = "\n- El status enviado es incorrecto";
-                server_response.set_allocated_servermessage(&message_response);
-
-                if (!server_response.SerializeToString(&response_str)) {
-                    std::cerr << "Failed to serialize message." << std::endl;
-                    return 1;
-                }
-
-                send(new_socket, response_str.c_str(), response_str.length(), 0);
-                std::cout << "\n- El status enviado es incorrecto" << std::endl;
-            }
-            else if (user_flag) {
-                users_state[user_name] = new_status;
-                server_response.set_option(3);
+            //Para mandar a todos los usuarios conectados
+            else if (m_type){
+                server_response.set_option(4);
                 server_response.set_code(200);
-                message_response = "\n- Se ha cambiado el status exitosamente";
+                message_response = "\n- " + sender + " ha enviado el mensaje a todos los usuarios conectados";
                 server_response.set_allocated_servermessage(&message_response);
-
+                server_response.set_allocated_message(&mensaje);
                 if (!server_response.SerializeToString(&response_str)) {
                     std::cerr << "Failed to serialize message." << std::endl;
                     return 1;
                 }
 
+                //Se realiza un for loop para todos los usuarios que estén conectados
+                for (auto it = users_sockets.begin(); it != users_sockets.end(); ++it) {
+                    if(users_state[it->first]==1){
+                        send(users_sockets[it->first], response_str.c_str(), response_str.length(), 0);
+                        std::cout << "\n- "<< sender << " --> "<< message_string << " --> " << it->first << std::endl;
+                        
+                    }
+                }
+                
+                //Mandar respuesta al que mandó el mensaje
                 send(new_socket, response_str.c_str(), response_str.length(), 0);
+                std::cout << "\n- " << sender << " ha enviado a todos los usuarios conectados "<< std::endl;
                 user_info.Clear();
-                std::cout << "\n- Se han enviado el usuario solicitado: " << user_name << std::endl;
+               
             }
+
+            //Si no se encuentra la opción que se mandó
             else {
-                server_response.set_option(3);
+                server_response.set_option(4);
                 server_response.set_code(400);
-                message_response = "El usuario solicitado no existe";
+                message_response = "\n- La opción marcada para mensaje no existe";
                 server_response.set_allocated_servermessage(&message_response);
 
                 if (!server_response.SerializeToString(&response_str)) {
@@ -358,14 +384,17 @@ int main() {
                 }
 
                 send(new_socket, response_str.c_str(), response_str.length(), 0);
-                std::cout << "\n- El usuario solicitado por el cliente no existe: " << user_name << std::endl;
+                std::cout << "\n- La opción marcada para mensaje no existe: " << std::endl;
             }
+
+
 
         }
 
         server_response.release_servermessage();
         server_response.release_connectedusers();
         server_response.release_userinforesponse();
+        server_response.release_message();
         request.Clear();
         request.clear_inforequest();
         request.clear_message();
