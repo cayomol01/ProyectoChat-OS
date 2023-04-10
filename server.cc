@@ -1,6 +1,7 @@
 #include <iostream>
 #include "project.pb.h"
 
+#include <pthread.h>
 #include <unistd.h>
 #include <cstring>
 #include <sys/socket.h>
