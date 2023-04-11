@@ -1,10 +1,8 @@
 #include <iostream>
 #include <map>
+#include <pthread.h>
 
 
-void client_handler(void *socket){
-    std::cout << *(std::string*)(socket);
-}
 
 void client_handler(void *socket){
     int sockfd = *(int*)socket; // cast void pointer to int pointer and dereference
@@ -32,4 +30,7 @@ int main() {
     std::cout << a + b + c << std::endl;
 
     return 0;
+
+    
 }
+
