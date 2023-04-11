@@ -1,6 +1,16 @@
 #include <iostream>
 #include <map>
 
+
+void client_handler(void *socket){
+    std::cout << *(std::string*)(socket);
+}
+
+void client_handler(void *socket){
+    int sockfd = *(int*)socket; // cast void pointer to int pointer and dereference
+    std::cout << "Socket file descriptor: " << sockfd << std::endl;
+}
+
 int main() {
     std::map<std::string, int> myMap;
     myMap["apple"] = 2;
