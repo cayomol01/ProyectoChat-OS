@@ -100,17 +100,19 @@ void *client_handler(void* user_socket) {
             std::string message_response;
 
             /* 
-            
                 Opcion 1, de acuerdo con el protocolo, esta opcion se utiliza para manejar el registro de usuarios.
-
             */
             if (option == 1) {
+
+                // Extraemos las variables que vienen en la request del usuario.
                 newUser = request.newuser();
                 user_name = newUser.username();
                 ip = newUser.ip();
 
+                // Buscamos dentro de nuestras variables si el usuario ya esta registrado o activo.
                 for (auto it = users.begin(); it != users.end(); ++it)
                 {
+                    // Si el usuario se encuentra registrado o activo, se le notifica al cliente un error.
                     if (it->first == user_name && users_state[user_name] != 3)
                     {
                         message_response = "\n- El usuario ya esta registrado o esta activo";
@@ -129,6 +131,8 @@ void *client_handler(void* user_socket) {
                     }
                 }
 
+                // Si no se encuentra el usuario registrado o el usuario esta inactivo, 
+                // se crea o activa el usuario y se notifica al cliente.
                 if (!user_flag || ( user_flag &&  users_state[user_name] == 3)){
                     users[user_name] = ip;
                     users_state[user_name] = 1;
@@ -150,6 +154,8 @@ void *client_handler(void* user_socket) {
                 }
             }
 
+            // En caso no se haya registrado el usuario y se este intentando hacer otra
+            // peticion, se notifica al cliente el error.
             if (current_user == "") {
                 message_response = "\n- No hay usuario conectado";
                 server_response.set_option(1);
@@ -165,11 +171,21 @@ void *client_handler(void* user_socket) {
                 std::cout << "\n- No hay usuario asociado a la conexion "<< std::endl;
             }
 
+            /* 
+                Opcion 2,  de acuerdo con el protocolo, esta opcion se utiliza para retornar la informacion
+                de uno o varios usuarios.
+            */
             if (option == 2 && current_user != "") {
+
+                // Extraemos las variables que vienen en la request del usuario.
                 user_info_request = request.inforequest();
                 info_user_type = user_info_request.type_request();
+
+                // Dependiendo de la opcion enviada por el cliente se selecciona. En el protocolo se define que pasa
+                // cuando es true o false.
                 if (info_user_type) {
 
+                    // Se reune toda la informacion de los usuarios en la estructura de datos.
                     for (auto it = users.begin(); it != users.end(); ++it)
                     {
                         user_info.set_username(it->first);
@@ -177,9 +193,9 @@ void *client_handler(void* user_socket) {
                         user_info.set_status(users_state[it->first]);
                         connected_users.add_connectedusers()->CopyFrom(user_info);
                         user_info.Clear();
-
                     }
 
+                    // Se envia la iformacion al cliente.
                     server_response.set_option(2);
                     server_response.set_code(200);
                     message_response = "\n- Se han enviado todos los usuarios";
@@ -196,7 +212,10 @@ void *client_handler(void* user_socket) {
 
                 } 
                 else {
+                    // En esta opcion el cliente envia el usuario del que desea informacion
                     user_name = user_info_request.user();
+
+                    // Se busca la informacion del cliente
                     for (auto it = users.begin(); it != users.end(); ++it)
                     {
                         if (it->first == user_name){
@@ -208,6 +227,7 @@ void *client_handler(void* user_socket) {
 
                     }
 
+                    // Se envia la respuesta al usuario.
                     if (user_flag) {
                         server_response.set_option(2);
                         server_response.set_code(200);
@@ -224,6 +244,7 @@ void *client_handler(void* user_socket) {
                         user_info.Clear();
                         std::cout << "\n- Se han enviado el usuario solicitado: " << user_name << std::endl;
                     }
+                    // En caso no exista el usuario solicitado, se le notifica al cliente.
                     else {
                         server_response.set_option(2);
                         server_response.set_code(400);
@@ -481,7 +502,7 @@ int main() {
         std::cout << ".\n- Nueva conexión aceptada" << std::endl;
 
         pthread_t id;
-        pthread_create(&id, NULL, client_handler, (void *)new_socket);
+        pthread_create(&id, NULL, client_handler, (void *) &new_socket);
     }
 
     return 0;
