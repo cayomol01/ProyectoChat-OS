@@ -63,9 +63,11 @@ void *receiveResponse(void* socket) {
             cout << "Info: Connection closed by server" << endl;
             pthread_exit(NULL);
         }
+
+        string request_str(buffer, valread);
         // Deserialize response
         ServerResponse serverResponse;
-        serverResponse.ParseFromString(buffer);
+        serverResponse.ParseFromString(request_str);
         if (serverResponse.code() == 200) {
             int option = serverResponse.option();
             if(option == 1) {

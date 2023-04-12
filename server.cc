@@ -263,14 +263,18 @@ void *client_handler(void* user_socket) {
                 }
             }
 
+            /* 
+                Opcion 3,  de acuerdo con el protocolo, esta opcion se utiliza para rcambiar el estado de un usuario.
+            */
+
             if (option == 3 && current_user != "") {
 
-                
-
+                // Extraemos las variables que vienen en la request del usuario.
                 change_status = request.status();
                 user_name = change_status.username();
                 new_status = change_status.newstatus();
 
+                // Verificamos si el usuario existe en nuestro registro
                 for (auto it = users.begin(); it != users.end(); ++it)
                     {
                         if (it->first == user_name){
@@ -278,6 +282,8 @@ void *client_handler(void* user_socket) {
                         }
 
                     }
+
+                    // Verificamos que el status solicitado sea entre 1 y 3, de lo contrario se notifica un error.
                     if (new_status < 1 || new_status > 3){
                         server_response.set_option(3);
                         server_response.set_code(400);
@@ -292,6 +298,7 @@ void *client_handler(void* user_socket) {
                         send(socket, response_str.c_str(), response_str.length(), 0);
                         std::cout << "\n- El status enviado es incorrecto" << std::endl;
                     }
+                    // Si todo es exitoso se modifica la informacion del usuario.
                     else if (user_flag) {
                         users_state[user_name] = new_status;
                         server_response.set_option(3);
@@ -309,6 +316,7 @@ void *client_handler(void* user_socket) {
                         std::cout << "\n- Se han enviado el usuario solicitado: " << user_name << std::endl;
                         std::cout << "\n- Nuevo status: " << new_status << std::endl;
                     }
+                    // Si el usuario no existe se notifica al cliente el error
                     else {
                         server_response.set_option(3);
                         server_response.set_code(400);
@@ -444,12 +452,17 @@ void *client_handler(void* user_socket) {
             memset(buffer, 0, sizeof(buffer));
 
         } else if (valread == 0){
+
+            // En caso el usuario se desconecto y se cerro el sistema se recibe 0 a traves del socket
+            // Por lo que cambiamos el estado del usuario y cerramos el socket.
             users_state[current_user] = 3;
             std::cout << "El usuario: " << current_user << " se ha desconectado";
             user_while_flag = 0;
             close(socket);
             pthread_exit(NULL);
         } else {
+
+            // En caso de un error cambiamos el estado y cerramos el socket.
             users_state[current_user] = 3;
             printf("Fatal Error: -1\n");
             user_while_flag = 0;
@@ -503,6 +516,7 @@ int main() {
 
         std::cout << ".\n- Nueva conexión aceptada" << std::endl;
 
+        // Creamos el nuevo thread haciendo referencia al client handler y enviamos el socket
         pthread_t id;
         pthread_create(&id, NULL, client_handler, (void *) &new_socket);
     }
