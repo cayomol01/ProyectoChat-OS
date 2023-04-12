@@ -314,6 +314,8 @@ void *client_handler(void *user_socket) {
                         send(socket, response_str.c_str(), response_str.length(), 0);
                         std::cout << "\n- El usuario solicitado por el cliente no existe o está inactivo: " << recipient << std::endl;
                     }
+                    user_info.Clear();
+
 
                 }
                 //Para mandar a todos los usuarios conectados
@@ -331,7 +333,7 @@ void *client_handler(void *user_socket) {
                     //Se realiza un for loop para todos los usuarios que estén conectados
                     for (auto it = users_sockets.begin(); it != users_sockets.end(); ++it) {
                         if(users_state[it->first]==1){
-                            if(users_state[it->first]!= user_socket){
+                            if(users_state[it->first]!= socket){
                                 send(users_sockets[it->first], response_str.c_str(), response_str.length(), 0);
                                 std::cout << "\n- "<< sender << " --> "<< message_string << " --> " << it->first << std::endl;
                             }
