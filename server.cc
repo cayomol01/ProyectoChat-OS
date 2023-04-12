@@ -379,6 +379,8 @@ void *client_handler(void* user_socket) {
                         send(socket, response_str.c_str(), response_str.length(), 0);
                         std::cout << "\n- El usuario solicitado por el cliente no existe o está inactivo: " << recipient << std::endl;
                     }
+                    user_info.Clear();
+
 
                 }
                 //Para mandar a todos los usuarios conectados
