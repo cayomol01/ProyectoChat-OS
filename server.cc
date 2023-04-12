@@ -1,6 +1,5 @@
 #include <iostream>
 #include "project.pb.h"
-
 #include <unistd.h>
 #include <cstring>
 #include <sys/socket.h>
@@ -11,69 +10,100 @@
 #include <pthread.h>
 #include <cstdint>
 
+/* 
+    Declaramos todas las variables globales que estaran utilizando los threads creados en el servidor.
+    Users               contiene el usuario y la ip de cada conexion.
+    Users State         contiene el usuario y el su estado actual.
+    Users Sockets       contiene el usuario y el socket de cada conexion. Cuando la conexion finaliza 
+                        se elimina ese valor del mapa.
+ */
 std::map<std::string, std::string> users;
 std::map<std::string, int> users_state;
 std::map<std::string, int> users_sockets;
-std::map<int, pthread_t> users_pthread_ids;
-//Recibe 
-void *client_handler(void *user_socket) {
-    std::string current_user = "";
+
+
+/* 
+    Clien Handler
+
+    Esta es la funcion encargada de controlar las peticiones realizadas por el cliente en cada conexion. 
+    Se ha declarado de tal manera que pueda ser utilizada por los threads y reciba el socket de la
+    conexion. Con nuestra programacion defensiva, obligamos al usuario que la primer accion que realice
+    sea la opcion 1, registrarse. Pues para realizar peticiones, aunque no todas las opciones requieren
+    que haya un usuario registrado, no seria logico que se acepten.
+
+ */
+void *client_handler(void* user_socket) {
+
+    // Instanciamos la variable que vamos a utilizar para almacenar el nombre del usuario conectado.
+    std::string current_user = ""; 
+    // Convertimos el socket a un formato manejable por el sistema
     int socket = *((int *) user_socket);
+    // Declaramos una variable que nos permita saber si el servidor debe seguir escuchando a esta
+    // conexion en especifico.
+    bool user_while_flag = true;
 
-    bool user_flag = true;
+    // El while nos permite estar al pendiente de cualquier peticion por parte de la conexion a la que
+    // se refiere.
+    while(user_while_flag){
 
-    while(user_flag){
+        // Decidimos manejar un buffer de 1024 bytes.
         char buffer[1024] = {0};
+
+        // Escribimos la informacion recibida a traves del socket en el buffer.
         int valread = recv(socket, buffer, 1024, 0);
         
+        // Si la cantidad de bytes recibidos a traves del socket es mayor a 0 significa que se recibio
+        // informacion por lo que procedemos a manejar la peticion.
         if (valread > 0) {
+
+            // Convertimos a string el mensaje recibido a traves de la peticion en el socket.
             std::string request_str(buffer, valread);
+
+            // Instanciamos la variable, basada en el protocolo, que recibira la informacion enviada por
+            // el cliente a traves del socket.
             chat::UserRequest request;
             
+            // Almacenamos la peticion del usuario en la variable request.
             if (!request.ParseFromString(request_str)) {
                 std::cerr << "Error al deserializar la solicitud" << std::endl;
             }
 
-
+            // Instanciamos las variables que vamos a estar utilizando en todas las opciones.
             std::int32_t option = request.option();
-            chat::UserRegister newUser;
-            chat::ChangeStatus status;
-
-
-            // Case 1 Variables
             std::string user_name;
+            bool user_flag = false;
+
+            // Instanciamos las variables que vamos a estar utilizando en la opcion 1.
+            chat::UserRegister newUser;
             std::string ip;
 
-            bool user_flag = false;
-            
-
-            //Case 2 Variables
-
+            // Instanciamos las variables que vamos a estar utilizando en la opcion 2.
             bool info_user_type;
             chat::UserInfoRequest user_info_request;
             chat::AllConnectedUsers connected_users;
             chat::UserInfo user_info;
 
-            // Case 3 Variables
-
+            // Instanciamos las variables que vamos a estar utilizando en la opcion 3.
             chat::ChangeStatus change_status;
             std::int32_t new_status;
 
-            // Case 4 variables
+            // Instanciamos las variables que vamos a estar utilizando en la opcion 4.
             bool m_type;
-
             std::string recipient;
             std::string sender;
             chat::newMessage mensaje;
             std::string message_string;
 
-            
-
-
+            // Instanciamos las variables que vamos a estar utilizando para la response del servidor.
             std::string response_str;
             chat::ServerResponse server_response;
             std::string message_response;
 
+            /* 
+            
+                Opcion 1, de acuerdo con el protocolo, esta opcion se utiliza para manejar el registro de usuarios.
+
+            */
             if (option == 1) {
                 newUser = request.newuser();
                 user_name = newUser.username();
@@ -103,6 +133,7 @@ void *client_handler(void *user_socket) {
                     users[user_name] = ip;
                     users_state[user_name] = 1;
                     users_sockets[user_name] = socket;
+                    current_user = user_name;
                     message_response = "\n- Usuario registrado o activado exitosamente";
                     server_response.set_option(1);
                     server_response.set_code(200);
@@ -119,10 +150,22 @@ void *client_handler(void *user_socket) {
                 }
             }
 
-            //El socket no cambia, es decir que no se cierra y por lo tanto se puede mandar a ese socket
+            if (current_user == "") {
+                message_response = "\n- No hay usuario conectado";
+                server_response.set_option(1);
+                server_response.set_code(400);
+                server_response.set_allocated_servermessage(&message_response);
 
-            //El usuario 
-            if (option == 2) {
+                if (!server_response.SerializeToString(&response_str)) {
+                    std::cerr << "Failed to serialize message." << std::endl;
+                    
+                }
+
+                send(socket, response_str.c_str(), response_str.length(), 0);
+                std::cout << "\n- No hay usuario asociado a la conexion "<< std::endl;
+            }
+
+            if (option == 2 && current_user != "") {
                 user_info_request = request.inforequest();
                 info_user_type = user_info_request.type_request();
                 if (info_user_type) {
@@ -199,7 +242,7 @@ void *client_handler(void *user_socket) {
                 }
             }
 
-            if (option == 3) {
+            if (option == 3 && current_user != "") {
 
                 
 
@@ -243,6 +286,7 @@ void *client_handler(void *user_socket) {
                         send(socket, response_str.c_str(), response_str.length(), 0);
                         user_info.Clear();
                         std::cout << "\n- Se han enviado el usuario solicitado: " << user_name << std::endl;
+                        std::cout << "\n- Nuevo status: " << new_status << std::endl;
                     }
                     else {
                         server_response.set_option(3);
@@ -333,7 +377,7 @@ void *client_handler(void *user_socket) {
                     //Se realiza un for loop para todos los usuarios que estén conectados
                     for (auto it = users_sockets.begin(); it != users_sockets.end(); ++it) {
                         if(users_state[it->first]==1){
-                            if(users_state[it->first]!= socket){
+                            if(users_sockets[it->first] != socket){
                                 send(users_sockets[it->first], response_str.c_str(), response_str.length(), 0);
                                 std::cout << "\n- "<< sender << " --> "<< message_string << " --> " << it->first << std::endl;
                             }
@@ -381,11 +425,14 @@ void *client_handler(void *user_socket) {
         } else if (valread == 0){
             users_state[current_user] = 3;
             std::cout << "El usuario: " << current_user << " se ha desconectado";
-            user_flag = 0;
+            user_while_flag = 0;
             close(socket);
+            pthread_exit(NULL);
         } else {
+            users_state[current_user] = 3;
             printf("Fatal Error: -1\n");
-            user_flag = 0;
+            user_while_flag = 0;
+            pthread_exit(NULL);
         }
 
     }
@@ -436,9 +483,7 @@ int main() {
         std::cout << ".\n- Nueva conexión aceptada" << std::endl;
 
         pthread_t id;
-        if (pthread_create(&id, NULL, client_handler, (void *)new_socket) != 0) {
-            perror("create pthread error!\n");
-        }
+        pthread_create(&id, NULL, client_handler, (void *)new_socket);
     }
 
     return 0;
