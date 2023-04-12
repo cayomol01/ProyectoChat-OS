@@ -64,7 +64,7 @@ void *receiveResponse(void* socket) {
             pthread_exit(NULL);
         }
 
-        string request_str(buffer, valread);
+        string request_str(buffer, bytesReceived);
         // Deserialize response
         ServerResponse serverResponse;
         serverResponse.ParseFromString(request_str);
