@@ -1,3 +1,0 @@
-g++ client.cc project.pb.cc -o client -lprotobuf
-
-g++ server.cc project.pb.cc -o server -lprotobuf
