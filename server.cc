@@ -103,6 +103,7 @@ void *client_handler(void *user_socket) {
                     users[user_name] = ip;
                     users_state[user_name] = 1;
                     users_sockets[user_name] = socket;
+                    current_user = user_name;
                     message_response = "\n- Usuario registrado o activado exitosamente";
                     server_response.set_option(1);
                     server_response.set_code(200);
@@ -119,10 +120,26 @@ void *client_handler(void *user_socket) {
                 }
             }
 
+            if (current_user == "") {
+                message_response = "\n- No hay usuario conectado";
+                server_response.set_option(1);
+                server_response.set_code(400);
+                server_response.set_allocated_servermessage(&message_response);
+                user_flag = true;
+
+                if (!server_response.SerializeToString(&response_str)) {
+                    std::cerr << "Failed to serialize message." << std::endl;
+                    
+                }
+
+                send(socket, response_str.c_str(), response_str.length(), 0);
+                std::cout << "\n- No hay usuario asociado a la conexion "<< std::endl;
+            }
+
             //El socket no cambia, es decir que no se cierra y por lo tanto se puede mandar a ese socket
 
             //El usuario 
-            if (option == 2) {
+            if (option == 2 && current_user != "") {
                 user_info_request = request.inforequest();
                 info_user_type = user_info_request.type_request();
                 if (info_user_type) {
@@ -199,7 +216,7 @@ void *client_handler(void *user_socket) {
                 }
             }
 
-            if (option == 3) {
+            if (option == 3 && current_user != "") {
 
                 
 
@@ -243,6 +260,7 @@ void *client_handler(void *user_socket) {
                         send(socket, response_str.c_str(), response_str.length(), 0);
                         user_info.Clear();
                         std::cout << "\n- Se han enviado el usuario solicitado: " << user_name << std::endl;
+                        std::cout << "\n- Nuevo status: " << new_status << std::endl;
                     }
                     else {
                         server_response.set_option(3);
@@ -331,7 +349,7 @@ void *client_handler(void *user_socket) {
                     //Se realiza un for loop para todos los usuarios que estén conectados
                     for (auto it = users_sockets.begin(); it != users_sockets.end(); ++it) {
                         if(users_state[it->first]==1){
-                            if(users_state[it->first]!= user_socket){
+                            if(users_sockets[it->first] != socket){
                                 send(users_sockets[it->first], response_str.c_str(), response_str.length(), 0);
                                 std::cout << "\n- "<< sender << " --> "<< message_string << " --> " << it->first << std::endl;
                             }
@@ -381,9 +399,12 @@ void *client_handler(void *user_socket) {
             std::cout << "El usuario: " << current_user << " se ha desconectado";
             user_flag = 0;
             close(socket);
+            pthread_exit(NULL);
         } else {
+            users_state[current_user] = 3;
             printf("Fatal Error: -1\n");
             user_flag = 0;
+            pthread_exit(NULL);
         }
 
     }
