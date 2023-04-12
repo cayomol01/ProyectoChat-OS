@@ -4,11 +4,16 @@
 
 
 
-void client_handler(void *socket){
-    int sockfd = *(int*)socket; // cast void pointer to int pointer and dereference
-    std::cout << "Socket file descriptor: " << sockfd << std::endl;
-}
+void *client_handler(void* user_socket) {
+    std::string current_user = "";
+    int socket = *((int *) user_socket);
 
+    std::cout << "aaaa " << socket << std::endl;
+
+    return NULL;
+}
+   
+                    
 int main() {
     std::map<std::string, int> myMap;
     myMap["apple"] = 2;
@@ -29,8 +34,14 @@ int main() {
 
     std::cout << a + b + c << std::endl;
 
+    int new_socket = 1;
+    pthread_t id;
+
+    pthread_create(&id, NULL, client_handler, (void *)&new_socket);
+    std::cout << "hola" << std::endl;
+
     return 0;
 
-    
+
 }
 

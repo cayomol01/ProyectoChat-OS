@@ -14,6 +14,7 @@
 std::map<std::string, std::string> users;
 std::map<std::string, int> users_state;
 std::map<std::string, int> users_sockets;
+std::map<int, pthread_t> users_pthread_ids;
 //Recibe 
 void *client_handler(void *user_socket) {
     std::string current_user = "";
@@ -330,8 +331,11 @@ void *client_handler(void *user_socket) {
                     //Se realiza un for loop para todos los usuarios que estén conectados
                     for (auto it = users_sockets.begin(); it != users_sockets.end(); ++it) {
                         if(users_state[it->first]==1){
-                            send(users_sockets[it->first], response_str.c_str(), response_str.length(), 0);
-                            std::cout << "\n- "<< sender << " --> "<< message_string << " --> " << it->first << std::endl;
+                            if(users_state[it->first]!= user_socket){
+                                send(users_sockets[it->first], response_str.c_str(), response_str.length(), 0);
+                                std::cout << "\n- "<< sender << " --> "<< message_string << " --> " << it->first << std::endl;
+                            }
+
                             
                         }
                     }
