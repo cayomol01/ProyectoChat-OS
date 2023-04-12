@@ -18,3 +18,5 @@ El objetivo de este proyecto es implementar un cliente y servidor para soportar 
 - Servidor: `./server`
 - Cliente: `./client <userName> <IP> <PORT>`
 
+## Comando
+- Para el cliente el comando de ayuda es `/help`
